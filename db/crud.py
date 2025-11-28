@@ -35,17 +35,26 @@ def get_habits_by_user(db: Session, user_id: int):
     return db.query(Habit).filter(Habit.user_id == user_id).all()
 
 
-def update_habit():
-    pass
+def update_habit(db: Session, habit_id: int, **kwargs):
+    habit = db.query(Habit).filter(Habit.id == habit_id).first()
+    if not habit:
+        return None
+
+    for key, value in kwargs.items():
+        if hasattr(habit, key) and value is not None:
+            setattr(habit, key, value)
+
+    db.commit()
+    db.refresh(habit)
+    return habit
 
 
 def delete_habit(db: Session, habit_id: int):
-    habit = db.query(Habit).filter(Habit.id == habit_id).all()
+    habit = db.query(Habit).filter(Habit.id == habit_id).first()
     if habit:
         db.delete(habit)
         db.commit()
-        return True
-    return False
+
 
 def complete_habit():
     pass
