@@ -19,7 +19,7 @@ async def habit_add_start(message: types.Message, state: FSMContext):
 @router.message(HabitCreate.waiting_for_title)
 async def habit_title(message: types.Message, state: FSMContext):
     await state.update_data(title=message.text)
-    await message.answer("Как часто выполнять?\nНапример: 1 - каждый день, 2 - раз в 2 дня")
+    await message.answer("Как часто выполнять?\nНапример: 1 - каждый день, 2 - каждые 2 дня")
     await state.set_state(HabitCreate.waiting_for_period)
 
 # habit period
