@@ -2,6 +2,9 @@ from sqlalchemy.orm import Session
 from db.base import SessionLocal
 from db.models import User
 from db.models import Habit
+from db.models import HabitCompletion
+from datetime import date
+from sqlalchemy import func
 
 
 def get_user(db: Session, tg_id: int):
@@ -35,6 +38,10 @@ def get_habits_by_user(db: Session, user_id: int):
     return db.query(Habit).filter(Habit.user_id == user_id).all()
 
 
+def get_habit_by_id(db: Session, habit_id: int):
+    return db.query(Habit).filter(Habit.id == habit_id).all()
+
+
 def update_habit(db: Session, habit_id: int, **kwargs):
     habit = db.query(Habit).filter(Habit.id == habit_id).first()
     if not habit:
@@ -56,8 +63,21 @@ def delete_habit(db: Session, habit_id: int):
         db.commit()
 
 
-def complete_habit():
-    pass
+def complete_habit(db: Session, habit_id: int):
+    completion = HabitCompletion(habit_id=habit_id)
+    db.add(completion)
+    db.commit()
+    db.refresh(completion)
+    return completion
 
 
-
+def is_habit_completed_today(db: Session, habit_id: int):
+    record = (
+        db.query(HabitCompletion)
+        .filter(
+            HabitCompletion.habit_id == habit_id,
+            func.date(HabitCompletion.completed_at) == date.today()
+        )
+        .first()
+    )
+    return record is not None
