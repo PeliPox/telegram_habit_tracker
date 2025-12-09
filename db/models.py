@@ -25,3 +25,14 @@ class Habit(Base):
     is_active = Column(Boolean, default=True)
 
     user = relationship("User", back_populates="habits")
+    completions = relationship("HabitCompletion", back_populates="habit", cascade="all, delete")
+
+
+class HabitCompletion(Base):
+    __tablename__ = "habit_completion"
+
+    id = Column(Integer, primary_key=True)
+    habit_id = Column(Integer, ForeignKey("habits.id"), nullable=False)
+    completed_at = Column(DateTime, default=datetime.utcnow)
+
+    habit = relationship("Habit", back_populates="completions")
