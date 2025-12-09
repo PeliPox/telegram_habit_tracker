@@ -81,3 +81,21 @@ def is_habit_completed_today(db: Session, habit_id: int):
         .first()
     )
     return record is not None
+
+
+def update_habit_title(db: Session, habit_id: int, title: str):
+    habit = db.query(Habit).get(habit_id)
+    habit.title = title
+    db.commit()
+
+
+def update_habit_description(db: Session, habit_id: int, description: str):
+    habit = db.query(Habit).get(habit_id)
+    habit.description = description
+    db.commit()
+
+
+def update_habit_periodicity(db: Session, habit_id: int, days: int):
+    habit = db.query(Habit).get(habit_id)
+    habit.periodicity = days
+    db.commit()
