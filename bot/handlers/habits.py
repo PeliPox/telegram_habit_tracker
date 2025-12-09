@@ -1,7 +1,8 @@
 from aiogram import Router, types, F
 from sqlalchemy.orm import Session
 from db.base import get_db
-from db.crud import get_habits_by_user, get_user, delete_habit, update_habit, get_habit_by_id, complete_habit, is_habit_completed_today
+from db.crud import (get_habits_by_user, get_user, delete_habit, update_habit_title, get_habit_by_id,
+                     complete_habit, is_habit_completed_today, update_habit_description, update_habit_periodicity)
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 from aiogram.fsm.state import State, StatesGroup
@@ -10,6 +11,7 @@ from aiogram.fsm.context import FSMContext
 
 class UpdateHabitState(StatesGroup):
     waiting_for_title = State()
+    waiting_for_description = State()
     waiting_for_periodicity = State()
 
 router = Router()
@@ -40,11 +42,11 @@ async def list_habits(message: types.Message):
         elif 6 <= h.periodicity <= 7:
             text += f"{mark}• *{h.title}* — каждые {h.periodicity} дней\n"
 
+    keyboard.button(
+        text="✏️ Изменить привычку",
+        callback_data="update_habit"
+    )
     keyboard.row(
-        InlineKeyboardButton(
-            text=f"✏️",
-            callback_data=f"update_habit:{h.id}"
-        ),
         InlineKeyboardButton(
             text=f"🗑",
             callback_data=f"delete_habit:{h.id}"
@@ -80,6 +82,7 @@ async def complete_habit_handler(callback: types.CallbackQuery):
     await callback.answer("Отмечено как выполнено! 🔥")
     next(db_gen, None)
 
+
 @router.callback_query(F.data.startswith("delete_habit:"))
 async def delete_habit_handler(callback: types.CallbackQuery):
     habit_id = int(callback.data.split(":")[1])
@@ -96,51 +99,115 @@ async def delete_habit_handler(callback: types.CallbackQuery):
 
 
 @router.callback_query(F.data.startswith("update_habit"))
-async def update_habit_start(callback: types.CallbackQuery, state: FSMContext):
+async def choose_habit_to_update(callback: types.CallbackQuery):
+    db_gen = get_db()
+    db: Session = next(db_gen)
+
+    user = get_user(db, callback.from_user.id)
+    habits = get_habits_by_user(db, user.id)
+
+    next(db_gen, None)
+
+    if not habits:
+        await callback.answer("У тебя нет привычек.", show_alert=True)
+        return
+
+    keyboard = InlineKeyboardBuilder()
+    for h in habits:
+        keyboard.button(
+            text=h.title,
+            callback_data=f"select_habit_for_update:{h.id}"
+        )
+    keyboard.adjust(1)
+
+    await callback.message.answer(
+        "Выбери привычку, которую хочешь изменить:\u2063",
+        reply_markup=keyboard.as_markup()
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data.startswith("select_habit_for_update:"))
+async def update_habit_menu(callback: types.CallbackQuery, state: FSMContext):
     habit_id = int(callback.data.split(":")[1])
     await state.update_data(habit_id=habit_id)
 
-    await callback.message.answer(
-        "Что хочешь изменить?\n"
-        "Отправь новое название или напиши `skip` чтобы пропустить."
-    )
+    keyboard = InlineKeyboardBuilder()
+    keyboard.button(text="✏️ Название", callback_data="edit_title")
+    keyboard.button(text="📄 Описание", callback_data="edit_description")
+    keyboard.button(text="📆 Периодичность", callback_data="edit_period")
+    keyboard.button(text="❌ Отмена", callback_data="cancel_update")
+    keyboard.adjust(1)
 
+    await callback.message.edit_text(
+        "Что хочешь изменить?",
+        reply_markup=keyboard.as_markup()
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "edit_title")
+async def update_title_start(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Введи новое название:")
     await state.set_state(UpdateHabitState.waiting_for_title)
+    await callback.answer()
 
 
 @router.message(UpdateHabitState.waiting_for_title)
-async def update_title(message: types.Message, state: FSMContext):
-    title = message.text.strip()
-    await state.update_data(title=None if title.lower() == "skip" else title)
-
-    await message.answer("Теперь отправь новый периодичность (в днях) или напиши `skip`.")
-    await state.set_state(UpdateHabitState.waiting_for_periodicity)
-
-
-@router.message(UpdateHabitState.waiting_for_periodicity)
-async def update_period(message: types.Message, state: FSMContext):
+async def process_new_title(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    period_text = message.text.strip()
-
-    if period_text.lower() == "skip":
-        period = None
-    else:
-        period = int(period_text)
+    habit_id = data["habit_id"]
 
     db_gen = get_db()
     db = next(db_gen)
-
-    updated = update_habit(
-        db,
-        habit_id=data["habit_id"],
-        title=data.get("title"),
-        periodicity=period,
-    )
-
+    update_habit_title(db, habit_id, message.text)
     next(db_gen, None)
+
+    await message.answer("Название обновлено ✔️")
     await state.clear()
 
-    if updated:
-        await message.answer("Готово! Привычка обновлена ✅")
-    else:
-        await message.answer("Ошибка: привычка не найдена ❌")
+
+@router.callback_query(F.data == "edit_description")
+async def update_description_start(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Введи новое описание привычки:")
+    await state.set_state(UpdateHabitState.waiting_for_description)
+    await callback.answer()
+
+
+@router.message(UpdateHabitState.waiting_for_description)
+async def process_new_description(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    habit_id = data["habit_id"]
+
+    db_gen = get_db()
+    db = next(db_gen)
+    update_habit_description(db, habit_id, message.text)
+    next(db_gen, None)
+
+    await message.answer("Описание обновлено ✔️")
+    await state.clear()
+
+
+@router.callback_query(F.data == "edit_period")
+async def update_period_start(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer("Введи периодичность (в днях):")
+    await state.set_state(UpdateHabitState.waiting_for_periodicity)
+    await callback.answer()
+
+
+@router.message(UpdateHabitState.waiting_for_periodicity)
+async def process_new_period(message: types.Message, state: FSMContext):
+    if not message.text.isdigit():
+        await message.answer("Введите число, пожалуйста")
+        return
+
+    data = await state.get_data()
+    habit_id = data["habit_id"]
+
+    db_gen = get_db()
+    db = next(db_gen)
+    update_habit_periodicity(db, habit_id, int(message.text))
+    next(db_gen, None)
+
+    await message.answer("Периодичность обновлена ✔️")
+    await state.clear()
