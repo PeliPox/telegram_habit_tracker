@@ -4,7 +4,7 @@ from db.base import get_db
 from db.crud import (get_habits_by_user, get_user, delete_habit, update_habit_title, get_habit_by_id,
                      complete_habit, is_habit_completed_today, update_habit_description, update_habit_periodicity)
 from aiogram.filters import Command
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
+from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton, ReplyKeyboardBuilder, KeyboardButton
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
@@ -16,7 +16,7 @@ class UpdateHabitState(StatesGroup):
 
 router = Router()
 
-@router.message(Command("habits"))
+@router.message(lambda message: message.text == "📋 Мои привычки")
 async def list_habits(message: types.Message):
     db_gen = get_db()
     db: Session = next(db_gen)
@@ -43,24 +43,23 @@ async def list_habits(message: types.Message):
             text += f"{mark}• *{h.title}* — каждые {h.periodicity} дней\n"
 
     keyboard.button(
-        text=f"✏️",
+        text=f"✏️ Изменить",
         callback_data="update_habit"
     )
     keyboard.button(
-        text=f"🗑",
+        text=f"🗑 Удалить",
         callback_data="delete_habit"
     )
-    keyboard.row(
-        InlineKeyboardButton(
-            text=f"✅",
-            callback_data=f"complete_habit:{h.id}"
-        )
-    )
+    # keyboard.button(
+    #     text=f"✅ Выполнено",
+    #     callback_data=f"complete_habit"
+    # )
+    # keyboard.adjust(2, 1)
 
     await message.answer(
         text=text,
         parse_mode="Markdown",
-        reply_markup=keyboard.as_markup()
+        reply_markup=keyboard.as_markup(resize_keyboard=True)
     )
 
     next(db_gen, None)
