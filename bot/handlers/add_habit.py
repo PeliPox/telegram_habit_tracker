@@ -10,7 +10,7 @@ class HabitCreate(StatesGroup):
     waiting_for_period = State()
 
 #  start habit creation
-@router.message(F.text == "/add_habit")
+@router.message(lambda message: message.text == "➕ Создать привычку")
 async def habit_add_start(message: types.Message, state: FSMContext):
     await message.answer("Введите название привычки:")
     await state.set_state(HabitCreate.waiting_for_title)
