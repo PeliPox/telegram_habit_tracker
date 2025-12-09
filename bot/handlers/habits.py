@@ -43,14 +43,14 @@ async def list_habits(message: types.Message):
             text += f"{mark}• *{h.title}* — каждые {h.periodicity} дней\n"
 
     keyboard.button(
-        text="✏️ Изменить привычку",
+        text=f"✏️",
         callback_data="update_habit"
     )
+    keyboard.button(
+        text=f"🗑",
+        callback_data="delete_habit"
+    )
     keyboard.row(
-        InlineKeyboardButton(
-            text=f"🗑",
-            callback_data=f"delete_habit:{h.id}"
-        ),
         InlineKeyboardButton(
             text=f"✅",
             callback_data=f"complete_habit:{h.id}"
@@ -82,8 +82,35 @@ async def complete_habit_handler(callback: types.CallbackQuery):
     await callback.answer("Отмечено как выполнено! 🔥")
     next(db_gen, None)
 
+@router.callback_query(F.data.startswith("delete_habit"))
+async def choose_habit_to_delete(callback: types.CallbackQuery):
+    db_gen = get_db()
+    db: Session = next(db_gen)
 
-@router.callback_query(F.data.startswith("delete_habit:"))
+    user = get_user(db, callback.from_user.id)
+    habits = get_habits_by_user(db, user.id)
+
+    next(db_gen, None)
+
+    if not habits:
+        await callback.answer("У тебя нет привычек.", show_alert=True)
+        return
+
+    keyboard = InlineKeyboardBuilder()
+    for h in habits:
+        keyboard.button(
+            text=h.title,
+            callback_data=f"habit_to_delete:{h.id}"
+        )
+    keyboard.adjust(1)
+
+    await callback.message.edit_text(
+        "Выбери привычку, которую хочешь удалить:\u2063",
+        reply_markup=keyboard.as_markup()
+    )
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("habit_to_delete:"))
 async def delete_habit_handler(callback: types.CallbackQuery):
     habit_id = int(callback.data.split(":")[1])
 
