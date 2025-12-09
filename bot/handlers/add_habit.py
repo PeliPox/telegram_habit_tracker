@@ -7,6 +7,7 @@ router = Router()
 
 class HabitCreate(StatesGroup):
     waiting_for_title = State()
+    waiting_for_description = State()
     waiting_for_period = State()
 
 #  start habit creation
@@ -19,8 +20,17 @@ async def habit_add_start(message: types.Message, state: FSMContext):
 @router.message(HabitCreate.waiting_for_title)
 async def habit_title(message: types.Message, state: FSMContext):
     await state.update_data(title=message.text)
+    await message.answer("Введите описание привычки:")
+    await state.set_state(HabitCreate.waiting_for_description)
+
+
+# description
+@router.message(HabitCreate.waiting_for_description)
+async def habit_description(message: types.Message, state: FSMContext):
+    await state.update_data(description=message.text)
     await message.answer("Как часто выполнять?\nНапример: 1 - каждый день, 2 - каждые 2 дня")
     await state.set_state(HabitCreate.waiting_for_period)
+
 
 # habit period
 @router.message(HabitCreate.waiting_for_period)
@@ -34,14 +44,17 @@ async def habit_period(message: types.Message, state: FSMContext):
 
     data = await state.get_data()
     title = data["title"]
+    description = data["description"]
 
     # почему в БД название колонок такое?
     create_habit(
         user_id=message.from_user.id,
         title=title,
-        periodicity=period
+        periodicity=period,
+        description=description
     )
 
-    await message.answer(f"Привычка '{title}' добавлена (каждые {period} дн.)!")
+    await message.answer(f"Привычка '{title}' добавлена (каждые {period} дн.)!"
+                         f"Описание: {description}")
     await state.clear()
 
