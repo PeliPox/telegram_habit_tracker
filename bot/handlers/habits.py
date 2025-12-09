@@ -36,11 +36,16 @@ async def list_habits(message: types.Message):
         mark = "✅" if completed else "❌"
 
         if h.periodicity == 1:
-            text += f"{mark}• *{h.title}* — каждый день\n"
-        elif 2 <= h.periodicity <= 5:
-            text += f"{mark}• *{h.title}* — каждые {h.periodicity} дня\n"
+            day_spelling: str = f"каждый день\n"
+        elif  2 <= h.periodicity <= 5:
+            day_spelling: str = f"каждые {h.periodicity} дня\n"
         elif 6 <= h.periodicity <= 7:
-            text += f"{mark}• *{h.title}* — каждые {h.periodicity} дней\n"
+            day_spelling: str = f"каждые {h.periodicity} дней\n"
+
+        if h.description:
+            text += f"{mark}• *{h.title}* — {day_spelling} ({h.description})\n"
+        else:
+            text += f"{mark}• *{h.title}* — {day_spelling}"
 
     keyboard.button(
         text=f"✏️ Изменить",
