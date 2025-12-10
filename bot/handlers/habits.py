@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from db.base import get_db
 from db.crud import (get_habits_by_user, get_user, delete_habit, update_habit_title, get_habit_by_id,
                      complete_habit, is_habit_completed_today, update_habit_description, update_habit_periodicity,
-                     not_complete_habit)
+                     not_complete_habit, get_or_create_user)
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton, ReplyKeyboardBuilder, KeyboardButton
 from aiogram.fsm.state import State, StatesGroup
@@ -71,7 +71,6 @@ async def list_habits(message: types.Message):
         parse_mode="Markdown",
         reply_markup=keyboard.as_markup(resize_keyboard=True)
     )
-
     next(db_gen, None)
 
 
@@ -95,6 +94,7 @@ async def choose_habit_to_complete(callback: types.CallbackQuery):
             text=h.title,
             callback_data=f"habit_completed:{h.id}"
         )
+    keyboard.button(text="❌ Отмена", callback_data="cancel_action")
     keyboard.adjust(1)
 
     await callback.message.edit_text(
@@ -125,6 +125,7 @@ async def choose_habit_to_not_complete(callback: types.CallbackQuery):
             text=h.title,
             callback_data=f"habit_not_completed:{h.id}"
         )
+    keyboard.button(text="❌ Отмена", callback_data="cancel_action")
     keyboard.adjust(1)
 
     await callback.message.edit_text(
@@ -183,6 +184,10 @@ async def choose_habit_to_delete(callback: types.CallbackQuery):
             text=h.title,
             callback_data=f"habit_to_delete:{h.id}"
         )
+    keyboard.button(
+        text="❌ Отмена",
+        callback_data="cancel_action"
+    )
     keyboard.adjust(1)
 
     await callback.message.edit_text(
@@ -227,6 +232,7 @@ async def choose_habit_to_update(callback: types.CallbackQuery):
             text=h.title,
             callback_data=f"select_habit_for_update:{h.id}"
         )
+    keyboard.button(text="❌ Отмена", callback_data="cancel_action")
     keyboard.adjust(1)
 
     await callback.message.answer(
@@ -323,7 +329,7 @@ async def process_new_period(message: types.Message, state: FSMContext):
 
 
 @router.callback_query(F.data == "cancel_action")
-async def cancel_action_handler(callback: types.CallbackQuery, state: FSMContext):
-    await state.clear()  # очищаем состояние
-    await callback.answer("Отменено")
-    await callback.message.delete()  # удаляем меню изменения
+async def cancel_action(callback: types.CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.delete()
+    await callback.answer("Отменено ❌")
