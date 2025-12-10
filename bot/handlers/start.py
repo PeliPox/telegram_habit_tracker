@@ -19,8 +19,10 @@ async def cmd_start(message: types.Message):
 
     keyboard = ReplyKeyboardBuilder()
     keyboard.add(
+        KeyboardButton(text="📋 Мои привычки"),
         KeyboardButton(text="➕ Создать привычку"),
-        KeyboardButton(text="📋 Мои привычки")
+        KeyboardButton(text="📊 Статистика"),
+        KeyboardButton(text="⚙️ Настройки")
     )
     keyboard.adjust(1)
 
