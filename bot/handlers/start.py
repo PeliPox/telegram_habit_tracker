@@ -33,5 +33,4 @@ async def cmd_start(message: types.Message):
             one_time_keyboard=False
         )
     )
-    # await message.answer(f'Привет, {user.name}! Я - твой личный трекер привычек.')
 

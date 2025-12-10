@@ -46,7 +46,6 @@ async def habit_period(message: types.Message, state: FSMContext):
     title = data["title"]
     description = data["description"]
 
-    # почему в БД название колонок такое?
     create_habit(
         user_id=message.from_user.id,
         title=title,
@@ -54,7 +53,8 @@ async def habit_period(message: types.Message, state: FSMContext):
         description=description
     )
 
-    await message.answer(f"Привычка '{title}' добавлена (каждые {period} дн.)!"
-                         f"Описание: {description}")
+    await message.answer(f"Привычка добавлена!\n"
+                         f"\nНазвание - *{title}*\n"
+                         f"Описание - *{description}*\n"
+                         f"Периодичность - *{period}* д.")
     await state.clear()
-
