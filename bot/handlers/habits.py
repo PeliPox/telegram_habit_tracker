@@ -55,11 +55,11 @@ async def list_habits(message: types.Message):
         text=f"🗑 Удалить",
         callback_data="delete_habit"
     )
-    # keyboard.button(
-    #     text=f"✅ Выполнено",
-    #     callback_data=f"complete_habit"
-    # )
-    # keyboard.adjust(2, 1)
+    keyboard.button(
+        text=f"✅ Выполнено",
+        callback_data=f"complete_habit"
+    )
+    keyboard.adjust(2, 1)
 
     await message.answer(
         text=text,
@@ -69,22 +69,49 @@ async def list_habits(message: types.Message):
 
     next(db_gen, None)
 
+
 @router.callback_query(F.data.startswith("complete_habit"))
+async def choose_habit_to_complete(callback: types.CallbackQuery):
+    db_gen = get_db()
+    db: Session = next(db_gen)
+
+    user = get_user(db, callback.from_user.id)
+    habits = get_habits_by_user(db, user.id)
+
+    next(db_gen, None)
+
+    if not habits:
+        await callback.answer("У тебя нет привычек.", show_alert=True)
+        return
+
+    keyboard = InlineKeyboardBuilder()
+    for h in habits:
+        keyboard.button(
+            text=h.title,
+            callback_data=f"habit_completed:{h.id}"
+        )
+    keyboard.adjust(1)
+
+    await callback.message.edit_text(
+        "Выбери привычку, которую хочешь отметить:",
+        reply_markup=keyboard.as_markup()
+    )
+
+    await callback.answer()
+
+@router.callback_query(F.data.startswith("habit_completed:"))
 async def complete_habit_handler(callback: types.CallbackQuery):
     habit_id = int(callback.data.split(":")[1])
 
     db_gen = get_db()
     db: Session = next(db_gen)
 
-    habit = get_habit_by_id(db, habit_id)
-    if not habit:
-        await callback.answer("Привычка не найдена!", show_alert=True)
-        return
-
     complete_habit(db, habit_id)
+    next(db_gen, None)
 
     await callback.answer("Отмечено как выполнено! 🔥")
-    next(db_gen, None)
+    await callback.message.edit_text("Отмечено как выполнено!")
+
 
 @router.callback_query(F.data.startswith("delete_habit"))
 async def choose_habit_to_delete(callback: types.CallbackQuery):
