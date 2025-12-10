@@ -18,6 +18,14 @@ def create_user(db: Session, tg_id: int, name: str):
     db.refresh(user)
     return user
 
+def get_or_create_user(db: Session, tg_id: int):
+    user = db.query(User).filter(User.tg_id == tg_id).first()
+    if not user:
+        user = User(tg_id=tg_id)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return user
 
 def create_habit(user_id: int, title: str, description: str = None, periodicity: int = 1):
     with SessionLocal() as session:
