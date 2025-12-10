@@ -35,12 +35,12 @@ async def list_habits(message: types.Message):
     for h in habits:
         completed = is_habit_completed_today(db, h.id)
         mark = "✅" if completed else "❌"
-
+        day_spelling: str = ""
         if h.periodicity == 1:
             day_spelling: str = f"каждый день\n"
         elif  2 <= h.periodicity <= 5:
             day_spelling: str = f"каждые {h.periodicity} дня\n"
-        elif 6 <= h.periodicity <= 7:
+        elif 6 <= h.periodicity >= 7:
             day_spelling: str = f"каждые {h.periodicity} дней\n"
 
         if h.description:
@@ -191,6 +191,7 @@ async def choose_habit_to_delete(callback: types.CallbackQuery):
     )
     await callback.answer()
 
+
 @router.callback_query(F.data.startswith("habit_to_delete:"))
 async def delete_habit_handler(callback: types.CallbackQuery):
     habit_id = int(callback.data.split(":")[1])
@@ -244,7 +245,7 @@ async def update_habit_menu(callback: types.CallbackQuery, state: FSMContext):
     keyboard.button(text="✏️ Название", callback_data="edit_title")
     keyboard.button(text="📄 Описание", callback_data="edit_description")
     keyboard.button(text="📆 Периодичность", callback_data="edit_period")
-    keyboard.button(text="❌ Отмена", callback_data="cancel_update")
+    keyboard.button(text="❌ Отмена", callback_data="cancel_action")
     keyboard.adjust(1)
 
     await callback.message.edit_text(
@@ -319,3 +320,10 @@ async def process_new_period(message: types.Message, state: FSMContext):
 
     await message.answer("Периодичность обновлена ✔️")
     await state.clear()
+
+
+@router.callback_query(F.data == "cancel_action")
+async def cancel_action_handler(callback: types.CallbackQuery, state: FSMContext):
+    await state.clear()  # очищаем состояние
+    await callback.answer("Отменено")
+    await callback.message.delete()  # удаляем меню изменения
