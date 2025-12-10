@@ -71,6 +71,13 @@ def complete_habit(db: Session, habit_id: int):
     return completion
 
 
+def not_complete_habit(db: Session, habit_id: int):
+    completion = db.query(HabitCompletion).filter(HabitCompletion.id == habit_id).first()
+    if completion:
+        db.delete(completion)
+        db.commit()
+
+
 def is_habit_completed_today(db: Session, habit_id: int):
     record = (
         db.query(HabitCompletion)

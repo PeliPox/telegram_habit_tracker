@@ -2,7 +2,8 @@ from aiogram import Router, types, F
 from sqlalchemy.orm import Session
 from db.base import get_db
 from db.crud import (get_habits_by_user, get_user, delete_habit, update_habit_title, get_habit_by_id,
-                     complete_habit, is_habit_completed_today, update_habit_description, update_habit_periodicity)
+                     complete_habit, is_habit_completed_today, update_habit_description, update_habit_periodicity,
+                     not_complete_habit)
 from aiogram.filters import Command
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton, ReplyKeyboardBuilder, KeyboardButton
 from aiogram.fsm.state import State, StatesGroup
@@ -59,7 +60,11 @@ async def list_habits(message: types.Message):
         text=f"✅ Выполнено",
         callback_data=f"complete_habit"
     )
-    keyboard.adjust(2, 1)
+    keyboard.button(
+        text=f"❌ Не выполнено",
+        callback_data=f"not_complete_habit"
+    )
+    keyboard.adjust(2, 1, 2)
 
     await message.answer(
         text=text,
@@ -99,6 +104,37 @@ async def choose_habit_to_complete(callback: types.CallbackQuery):
 
     await callback.answer()
 
+
+@router.callback_query(F.data.startswith("not_complete_habit"))
+async def choose_habit_to_not_complete(callback: types.CallbackQuery):
+    db_gen = get_db()
+    db: Session = next(db_gen)
+
+    user = get_user(db, callback.from_user.id)
+    habits = get_habits_by_user(db, user.id)
+
+    next(db_gen, None)
+
+    if not habits:
+        await callback.answer("У тебя нет привычек.", show_alert=True)
+        return
+
+    keyboard = InlineKeyboardBuilder()
+    for h in habits:
+        keyboard.button(
+            text=h.title,
+            callback_data=f"habit_not_completed:{h.id}"
+        )
+    keyboard.adjust(1)
+
+    await callback.message.edit_text(
+        "Выбери привычку, которую хочешь отменить:",
+        reply_markup=keyboard.as_markup()
+    )
+
+    await callback.answer()
+
+
 @router.callback_query(F.data.startswith("habit_completed:"))
 async def complete_habit_handler(callback: types.CallbackQuery):
     habit_id = int(callback.data.split(":")[1])
@@ -111,6 +147,20 @@ async def complete_habit_handler(callback: types.CallbackQuery):
 
     await callback.answer("Отмечено как выполнено! 🔥")
     await callback.message.edit_text("Отмечено как выполнено!")
+
+
+@router.callback_query(F.data.startswith("habit_not_completed:"))
+async def not_complete_habit_handler(callback: types.CallbackQuery):
+    habit_id = int(callback.data.split(":")[1])
+
+    db_gen = get_db()
+    db: Session = next(db_gen)
+
+    not_complete_habit(db, habit_id)
+    next(db_gen, None)
+
+    await callback.answer("Отмечено как не выполнено! 🔥")
+    await callback.message.edit_text("Отмечено как не выполнено!")
 
 
 @router.callback_query(F.data.startswith("delete_habit"))
