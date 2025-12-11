@@ -54,7 +54,7 @@ async def habit_period(message: types.Message, state: FSMContext):
     )
 
     await message.answer(f"Привычка добавлена!\n"
-                         f"\nНазвание - *{title}*\n"
-                         f"Описание - *{description}*\n"
-                         f"Периодичность - *{period}* д.")
+                         f"\nНазвание - {title}\n"
+                         f"Описание - {description}\n"
+                         f"Периодичность - {period} д.")
     await state.clear()

@@ -3,9 +3,8 @@ from sqlalchemy.orm import Session
 from db.base import get_db
 from db.crud import (get_habits_by_user, get_user, delete_habit, update_habit_title, get_habit_by_id,
                      complete_habit, is_habit_completed_today, update_habit_description, update_habit_periodicity,
-                     not_complete_habit, get_or_create_user)
-from aiogram.filters import Command
-from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton, ReplyKeyboardBuilder, KeyboardButton
+                     not_complete_habit)
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 

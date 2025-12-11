@@ -21,7 +21,8 @@ class Habit(Base):
     description = Column(Text, nullable=True)
 
     periodicity = Column(Integer, default=1)
-    created_at = Column(DateTime, default=datetime.now)
+    created_at = Column(DateTime, default=datetime.now().replace(second=0, microsecond=0))
+
     is_active = Column(Boolean, default=True)
 
     user = relationship("User", back_populates="habits")
@@ -33,6 +34,6 @@ class HabitCompletion(Base):
 
     id = Column(Integer, primary_key=True)
     habit_id = Column(Integer, ForeignKey("habits.id"), nullable=False)
-    completed_at = Column(DateTime, default=datetime.now)
+    completed_at = Column(DateTime, default=datetime.now().replace(second=0, microsecond=0))
 
     habit = relationship("Habit", back_populates="completions")

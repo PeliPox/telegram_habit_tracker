@@ -3,7 +3,7 @@ from db.base import SessionLocal
 from db.models import User
 from db.models import Habit
 from db.models import HabitCompletion
-from datetime import date
+from datetime import date, timedelta, time, datetime
 from sqlalchemy import func
 
 
@@ -114,3 +114,77 @@ def update_habit_periodicity(db: Session, habit_id: int, days: int):
     habit = db.query(Habit).get(habit_id)
     habit.periodicity = days
     db.commit()
+
+
+def get_habits_stats_for_user(db: Session, user_id: int):
+    habits = db.query(Habit).filter(Habit.user_id == user_id).all()
+
+    stats = []
+
+    start = datetime.combine(date.today(), time.min)
+    end = datetime.combine(date.today(), time.max)
+
+    for habit in habits:
+        # Всего выполнений
+        total = (
+            db.query(func.count(HabitCompletion.id))
+            .filter(HabitCompletion.habit_id == habit.id)
+            .scalar()
+        )
+
+        # Выполнено сегодня
+        today_done = (
+            db.query(func.count(HabitCompletion.id))
+            .filter(
+                HabitCompletion.habit_id == habit.id,
+                HabitCompletion.completed_at >= start,
+                HabitCompletion.completed_at <= end
+            )
+            .scalar()
+        )
+
+        # Последнее выполнение
+        last_completion = (
+            db.query(func.max(HabitCompletion.completed_at))
+            .filter(HabitCompletion.habit_id == habit.id)
+            .scalar()
+        )
+
+        # Подсчёт запоя (streak)
+        completions = (
+            db.query(HabitCompletion.completed_at)
+            .filter(HabitCompletion.habit_id == habit.id)
+            .order_by(HabitCompletion.completed_at.desc())
+            .all()
+        )
+        completion_dates = {c.completed_at.date() for c in completions}
+
+        streak = 0
+        current_date = date.today()
+        while current_date in completion_dates:
+            streak += 1
+            current_date -= timedelta(days=1)
+
+        # Максимальный стрик
+        max_streak = 0
+        temp = 0
+        prev = None
+
+        for c in sorted(completion_dates):
+            if prev and (c - prev == timedelta(days=1)):
+                temp += 1
+            else:
+                temp = 1
+            max_streak = max(max_streak, temp)
+            prev = c
+
+        stats.append({
+            "habit": habit,
+            "total": total,
+            "today": today_done,
+            "last": last_completion,
+            "streak": streak,
+            "max_streak": max_streak
+        })
+
+    return stats
