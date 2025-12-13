@@ -2,7 +2,7 @@ from aiogram import Router, types, F
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from db.crud import create_habit
-
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 router = Router()
 
 class HabitCreate(StatesGroup):
@@ -10,10 +10,21 @@ class HabitCreate(StatesGroup):
     waiting_for_description = State()
     waiting_for_period = State()
 
+
+def cancel_kb():
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel")]
+        ]
+    )
+
 #  start habit creation
 @router.message(lambda message: message.text == "➕ Создать привычку")
 async def habit_add_start(message: types.Message, state: FSMContext):
-    await message.answer("✏️ Введите название привычки:")
+    await message.answer(
+        "✏️ Введите название привычки:",
+        reply_markup=cancel_kb()
+    )
     await state.set_state(HabitCreate.waiting_for_title)
 
 # habit title
@@ -58,3 +69,10 @@ async def habit_period(message: types.Message, state: FSMContext):
                          f"📄 Описание - {description}\n"
                          f"📆 Периодичность - {period} д.")
     await state.clear()
+
+
+@router.callback_query(lambda c: c.data == "cancel")
+async def cancel_action(callback: types.CallbackQuery, state: FSMContext):
+    await state.clear()
+    await callback.message.edit_text("❌ Создание привычки отменено")
+    await callback.answer()
