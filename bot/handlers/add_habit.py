@@ -10,7 +10,6 @@ class HabitCreate(StatesGroup):
     waiting_for_description = State()
     waiting_for_period = State()
 
-
 def cancel_kb():
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -18,7 +17,7 @@ def cancel_kb():
         ]
     )
 
-#  start habit creation
+
 @router.message(lambda message: message.text == "➕ Создать привычку")
 async def habit_add_start(message: types.Message, state: FSMContext):
     await message.answer(
@@ -27,7 +26,7 @@ async def habit_add_start(message: types.Message, state: FSMContext):
     )
     await state.set_state(HabitCreate.waiting_for_title)
 
-# habit title
+
 @router.message(HabitCreate.waiting_for_title)
 async def habit_title(message: types.Message, state: FSMContext):
     await state.update_data(title=message.text)
@@ -35,7 +34,6 @@ async def habit_title(message: types.Message, state: FSMContext):
     await state.set_state(HabitCreate.waiting_for_description)
 
 
-# description
 @router.message(HabitCreate.waiting_for_description)
 async def habit_description(message: types.Message, state: FSMContext):
     await state.update_data(description=message.text)
@@ -43,7 +41,6 @@ async def habit_description(message: types.Message, state: FSMContext):
     await state.set_state(HabitCreate.waiting_for_period)
 
 
-# habit period
 @router.message(HabitCreate.waiting_for_period)
 async def habit_period(message: types.Message, state: FSMContext):
     try:

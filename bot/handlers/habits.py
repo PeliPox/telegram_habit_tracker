@@ -18,6 +18,9 @@ router = Router()
 
 @router.message(lambda message: message.text == "📋 Мои привычки")
 async def list_habits(message: types.Message):
+    """
+    Вывод списка всех привычек с кнопками взаимодействия с ними
+    """
     db_gen = get_db()
     db: Session = next(db_gen)
 
@@ -75,6 +78,9 @@ async def list_habits(message: types.Message):
 
 @router.callback_query(F.data.startswith("complete_habit"))
 async def choose_habit_to_complete(callback: types.CallbackQuery):
+    """
+    Список привычек для отметки выполнения
+    """
     db_gen = get_db()
     db: Session = next(db_gen)
 
@@ -106,6 +112,9 @@ async def choose_habit_to_complete(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith("not_complete_habit"))
 async def choose_habit_to_not_complete(callback: types.CallbackQuery):
+    """
+    Список привычек для отметки не выполнения
+    """
     db_gen = get_db()
     db: Session = next(db_gen)
 
@@ -137,6 +146,9 @@ async def choose_habit_to_not_complete(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith("habit_completed:"))
 async def complete_habit_handler(callback: types.CallbackQuery):
+    """
+    Хэндлер для отметки задачи выполненной
+    """
     habit_id = int(callback.data.split(":")[1])
 
     db_gen = get_db()
@@ -151,6 +163,9 @@ async def complete_habit_handler(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith("habit_not_completed:"))
 async def not_complete_habit_handler(callback: types.CallbackQuery):
+    """
+    Хэндлер для отметки задачи не выполненной
+    """
     habit_id = int(callback.data.split(":")[1])
 
     db_gen = get_db()
@@ -165,6 +180,9 @@ async def not_complete_habit_handler(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith("delete_habit"))
 async def choose_habit_to_delete(callback: types.CallbackQuery):
+    """
+    Вывод список привычек на удаление
+    """
     db_gen = get_db()
     db: Session = next(db_gen)
 
@@ -198,6 +216,9 @@ async def choose_habit_to_delete(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith("habit_to_delete:"))
 async def delete_habit_handler(callback: types.CallbackQuery):
+    """
+    Хэндлер удаления привычки
+    """
     habit_id = int(callback.data.split(":")[1])
 
     db_gen = get_db()
@@ -213,6 +234,9 @@ async def delete_habit_handler(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith("update_habit"))
 async def choose_habit_to_update(callback: types.CallbackQuery):
+    """
+    Список привычек на редактирование
+    """
     db_gen = get_db()
     db: Session = next(db_gen)
 
@@ -243,6 +267,9 @@ async def choose_habit_to_update(callback: types.CallbackQuery):
 
 @router.callback_query(F.data.startswith("select_habit_for_update:"))
 async def update_habit_menu(callback: types.CallbackQuery, state: FSMContext):
+    """
+    Хэндлер для вывода меню изменения
+    """
     habit_id = int(callback.data.split(":")[1])
     await state.update_data(habit_id=habit_id)
 
@@ -262,6 +289,9 @@ async def update_habit_menu(callback: types.CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data == "edit_title")
 async def update_title_start(callback: types.CallbackQuery, state: FSMContext):
+    """
+    Начало добавления нового title с сообщением
+    """
     await callback.message.answer("Введи новое название:")
     await state.set_state(UpdateHabitState.waiting_for_title)
     await callback.answer()
@@ -269,6 +299,9 @@ async def update_title_start(callback: types.CallbackQuery, state: FSMContext):
 
 @router.message(UpdateHabitState.waiting_for_title)
 async def process_new_title(message: types.Message, state: FSMContext):
+    """
+    Хендлер замены title
+    """
     data = await state.get_data()
     habit_id = data["habit_id"]
 
@@ -283,6 +316,9 @@ async def process_new_title(message: types.Message, state: FSMContext):
 
 @router.callback_query(F.data == "edit_description")
 async def update_description_start(callback: types.CallbackQuery, state: FSMContext):
+    """
+    Начало добавления нового description с сообщением
+    """
     await callback.message.answer("Введи новое описание привычки:")
     await state.set_state(UpdateHabitState.waiting_for_description)
     await callback.answer()
@@ -290,6 +326,9 @@ async def update_description_start(callback: types.CallbackQuery, state: FSMCont
 
 @router.message(UpdateHabitState.waiting_for_description)
 async def process_new_description(message: types.Message, state: FSMContext):
+    """
+    Хендлер замены description
+    """
     data = await state.get_data()
     habit_id = data["habit_id"]
 
@@ -304,6 +343,9 @@ async def process_new_description(message: types.Message, state: FSMContext):
 
 @router.callback_query(F.data == "edit_period")
 async def update_period_start(callback: types.CallbackQuery, state: FSMContext):
+    """
+    Начало добавления нового periodicity с сообщением
+    """
     await callback.message.answer("Введи периодичность (в днях):")
     await state.set_state(UpdateHabitState.waiting_for_periodicity)
     await callback.answer()
@@ -311,6 +353,9 @@ async def update_period_start(callback: types.CallbackQuery, state: FSMContext):
 
 @router.message(UpdateHabitState.waiting_for_periodicity)
 async def process_new_period(message: types.Message, state: FSMContext):
+    """
+    Хендлер замены description
+    """
     if not message.text.isdigit():
         await message.answer("Введите число, пожалуйста")
         return
@@ -329,6 +374,9 @@ async def process_new_period(message: types.Message, state: FSMContext):
 
 @router.callback_query(F.data == "cancel_action")
 async def cancel_action(callback: types.CallbackQuery, state: FSMContext):
+    """
+    Хендлер кнопки отмены действия
+    """
     await state.clear()
     await callback.message.delete()
     await callback.answer("Отменено ❌")
