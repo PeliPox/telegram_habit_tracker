@@ -18,6 +18,7 @@ def create_user(db: Session, tg_id: int, name: str):
     db.refresh(user)
     return user
 
+
 def get_or_create_user(db: Session, tg_id: int):
     user = db.query(User).filter(User.tg_id == tg_id).first()
     if not user:
@@ -26,6 +27,7 @@ def get_or_create_user(db: Session, tg_id: int):
         db.commit()
         db.refresh(user)
     return user
+
 
 def create_habit(user_id: int, title: str, description: str = None, periodicity: int = 1):
     with SessionLocal() as session:
@@ -119,6 +121,9 @@ def update_habit_periodicity(db: Session, habit_id: int, days: int):
 def get_habits_stats_for_user(db: Session, user_id: int):
     habits = db.query(Habit).filter(Habit.user_id == user_id).all()
 
+    if not habits:
+        return []
+
     stats = []
 
     start = datetime.combine(date.today(), time.min)
@@ -131,7 +136,6 @@ def get_habits_stats_for_user(db: Session, user_id: int):
             .filter(HabitCompletion.habit_id == habit.id)
             .scalar()
         )
-
         # Выполнено сегодня
         today_done = (
             db.query(func.count(HabitCompletion.id))
@@ -142,14 +146,12 @@ def get_habits_stats_for_user(db: Session, user_id: int):
             )
             .scalar()
         )
-
         # Последнее выполнение
         last_completion = (
             db.query(func.max(HabitCompletion.completed_at))
             .filter(HabitCompletion.habit_id == habit.id)
             .scalar()
         )
-
         # Подсчёт запоя (streak)
         completions = (
             db.query(HabitCompletion.completed_at)
@@ -165,7 +167,7 @@ def get_habits_stats_for_user(db: Session, user_id: int):
             streak += 1
             current_date -= timedelta(days=1)
 
-        # Максимальный стрик
+        # Максимальный Стрик
         max_streak = 0
         temp = 0
         prev = None
