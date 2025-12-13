@@ -13,14 +13,14 @@ class HabitCreate(StatesGroup):
 #  start habit creation
 @router.message(lambda message: message.text == "➕ Создать привычку")
 async def habit_add_start(message: types.Message, state: FSMContext):
-    await message.answer("Введите название привычки:")
+    await message.answer("✏️ Введите название привычки:")
     await state.set_state(HabitCreate.waiting_for_title)
 
 # habit title
 @router.message(HabitCreate.waiting_for_title)
 async def habit_title(message: types.Message, state: FSMContext):
     await state.update_data(title=message.text)
-    await message.answer("Введите описание привычки:")
+    await message.answer("📄 Введите описание привычки:")
     await state.set_state(HabitCreate.waiting_for_description)
 
 
@@ -28,7 +28,7 @@ async def habit_title(message: types.Message, state: FSMContext):
 @router.message(HabitCreate.waiting_for_description)
 async def habit_description(message: types.Message, state: FSMContext):
     await state.update_data(description=message.text)
-    await message.answer("Как часто выполнять?\nНапример: 1 - каждый день, 2 - каждые 2 дня")
+    await message.answer("📆 Как часто выполнять?\nНапример: 1 - каждый день, 2 - каждые 2 дня")
     await state.set_state(HabitCreate.waiting_for_period)
 
 
@@ -54,7 +54,7 @@ async def habit_period(message: types.Message, state: FSMContext):
     )
 
     await message.answer(f"Привычка добавлена!\n"
-                         f"\nНазвание - {title}\n"
-                         f"Описание - {description}\n"
-                         f"Периодичность - {period} д.")
+                         f"\n✏️ Название - {title}\n"
+                         f"📄 Описание - {description}\n"
+                         f"📆 Периодичность - {period} д.")
     await state.clear()
