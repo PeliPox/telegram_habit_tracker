@@ -12,6 +12,9 @@ async def show_stats(message: types.Message):
     db: Session = next(db_gen)
 
     user = get_user(db, message.from_user.id)
+    if not user:
+        await message.answer("Пользователь не найден.")
+        return
     stats = get_habits_stats_for_user(db, user.id)
 
     next(db_gen, None)
@@ -24,13 +27,20 @@ async def show_stats(message: types.Message):
 
     for s in stats:
         habit = s["habit"]
+
+        last = (
+            s["last"].strftime("%d.%m %H:%M")
+            if s["last"]
+            else "-"
+        )
+
         text += (
             f"• *{habit.title}*\n"
-            f"   ├ Всего выполнений: *{s['total']}*\n"
-            f"   ├ Выполнено сегодня: *{s['today']}*\n"
-            f"   ├ Последний раз: *{s['last'] if s['last'] else '—'}*\n"
-            f"   ├ Текущий стрик: *{s['streak']}*\n"
-            f"   └ Максимальный стрик: *{s['max_streak']}*\n\n"
+            f"   ├ 📈 Всего выполнений: *{s['total']}*\n"
+            f"   ├ ✅ Сегодня: *{s['today']}*\n"
+            f"   ├ 🕒 Последний раз: *{last}*\n"
+            f"   ├ 🔥 Текущий стрик: *{s['streak']}*\n"
+            f"   └ 🏆 Максимальный стрик: *{s['max_streak']}*\n\n"
         )
 
     await message.answer(text, parse_mode="Markdown")
